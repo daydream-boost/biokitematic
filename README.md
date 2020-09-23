@@ -18,6 +18,21 @@ Kitematic is a simple application for managing Docker containers on Mac, Linux a
 - registry-mirrors add "https://quay.io/"
 - Download biokitematic and launch
 
+## Usage
+
+### search bio software
+![searech](images/search.png)
+
+### select tags
+![tags](images/tags.png)
+
+### download image
+![download](images/download.png)
+
+### done
+![complete](images/complete.png)
+
+finally you can click docker cli to run your containers.
 
 ## Uninstalling
 
