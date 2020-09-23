@@ -12,7 +12,7 @@ var cacheDirectory = os.tmpdir() + '/cachekitematic';
 cachedRequest.setCacheDirectory(cacheDirectory);
 cachedRequest.setValue('ttl', 3000);
 
-let REGHUB2_ENDPOINT = process.env.REGHUB2_ENDPOINT || 'https://hub.docker.com/v2';
+let REGHUB2_ENDPOINT = process.env.REGHUB2_ENDPOINT || 'https://quay.io/api/v1';
 let searchReq = null;
 let PAGING = 24;
 
@@ -20,13 +20,9 @@ module.exports = {
   // Normalizes results from search to v2 repository results
   normalize: function (repo) {
     let obj = _.clone(repo);
-    if (obj.is_official) {
-      obj.namespace = 'library';
-    } else {
-      let [namespace, name] = repo.name.split('/');
-      obj.namespace = namespace;
-      obj.name = name;
-    }
+    let [blank, repository, namespace, name] = repo.name.split('/');
+    obj.namespace = namespace;
+    obj.name = name;
 
     return obj;
   },
@@ -52,8 +48,8 @@ module.exports = {
      */
 
     searchReq = cachedRequest({
-      url: `${REGHUB2_ENDPOINT}/search/repositories/?`,
-      qs: {query: query, page: page, page_size: PAGING, sorting}
+      url: `${REGHUB2_ENDPOINT}/find/repositories?`,
+      qs: {query: query, page: page}
     }, (error, response, body) => {
       if (error) {
         repositoryServerActions.error({error});
@@ -61,12 +57,12 @@ module.exports = {
 
       let data = JSON.parse(body);
       let repos = _.map(data.results, result => {
-        result.name = result.repo_name;
+        result.name = result.href;
         return this.normalize(result);
       });
-      let next = data.next;
-      let previous = data.previous;
-      let total = Math.floor(data.count / PAGING);
+      let next = '';
+      let previous = '';
+      let total = 1;
       if (response.statusCode === 200) {
         repositoryServerActions.resultsUpdated({repos, page, previous, next, total});
       }
@@ -136,14 +132,14 @@ module.exports = {
 
   tags: function (repo, callback) {
     hubUtil.request({
-      url: `${REGHUB2_ENDPOINT}/repositories/${repo}/tags`,
+      url: `${REGHUB2_ENDPOINT}/repository/${repo}/tag`,
       qs: {page: 1, page_size: 100}
     }, (error, response, body) => {
       if (response.statusCode === 200) {
         let data = JSON.parse(body);
-        tagServerActions.tagsUpdated({repo, tags: data.results || []});
+        tagServerActions.tagsUpdated({repo, tags: data.tags || []});
         if (callback) {
-          return callback(null, data.results || []);
+          return callback(null, data.tags || []);
         }
       } else {
         repositoryServerActions.error({repo});
